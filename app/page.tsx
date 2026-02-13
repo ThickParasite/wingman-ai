@@ -12,6 +12,7 @@ export default function Home() {
   const [replies, setReplies] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [uses, setUses] = useState(0);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const limitReached = uses >= FREE_LIMIT;
 
@@ -61,6 +62,25 @@ export default function Home() {
     setError(null);
     setMessage("");
     setTone("Playful");
+    setCheckoutLoading(false);
+  }
+
+  async function startCheckout() {
+    setError(null);
+    setCheckoutLoading(true);
+
+    try {
+      const res = await fetch("/api/checkout", { method: "POST" });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data?.error || "Checkout failed");
+      if (!data?.url) throw new Error("Missing checkout URL");
+
+      window.location.href = data.url;
+    } catch (e: any) {
+      setError(e?.message ?? "Checkout error");
+      setCheckoutLoading(false);
+    }
   }
 
   return (
@@ -141,10 +161,11 @@ export default function Home() {
               </div>
 
               <button
-                className="mt-2 w-full rounded-xl px-4 py-3 bg-white text-purple-700 font-semibold hover:scale-[1.02] transition-transform"
-                onClick={() => alert("Next step: connect Stripe checkout here.")}
+                className="mt-2 w-full rounded-xl px-4 py-3 bg-white text-purple-700 font-semibold hover:scale-[1.02] transition-transform disabled:opacity-70"
+                onClick={startCheckout}
+                disabled={checkoutLoading}
               >
-                Upgrade to Pro (Save 35%)
+                {checkoutLoading ? "Redirecting to secure checkout..." : "Upgrade to Pro (Save 35%)"}
               </button>
 
               <p className="text-xs text-white/60 text-center">You can cancel anytime. No pressure.</p>
